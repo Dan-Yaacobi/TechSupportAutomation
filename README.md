@@ -52,15 +52,14 @@
 <hr />
 
 <h2>Running the App</h2>
-<p>The application is distributed as a <strong>Windows executable</strong>.</p>
-<ol>
-  <li>Ensure Outlook is installed and you are logged in</li>
-  <li>Ensure access to the company shared storage</li>
-  <li>Run the provided <code>.exe</code> file</li>
-</ol>
+<p>
+This repository contains the application source code.
+End users receive a pre-built <strong>Windows executable</strong> distributed separately.
+</p>
 <p>No Python installation is required for end users.</p>
 
 <hr />
+
 
 <h2>Usage</h2>
 <ol>
