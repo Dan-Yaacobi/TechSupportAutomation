@@ -2,8 +2,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 
 from email_outlook import send_outlook_email
+from registry_store import save_to_registry
 
-print("app ui imported")
 def run_app(state: dict, admin_password: str):
     """
     state = {
@@ -82,9 +82,9 @@ def run_app(state: dict, admin_password: str):
 
             state["recipients"] = new_recipients
             state["subjects"] = new_subjects
-
-            # update combobox live
             subject_combo["values"] = state["subjects"]
+
+            save_to_registry(state["recipients"], state["subjects"])
 
             messagebox.showinfo("נשמר", "הרשימות עודכנו בהצלחה.")
             editor.destroy()
