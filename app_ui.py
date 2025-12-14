@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 
 from email_outlook import send_outlook_email
+
+from shared_config import save_shared_config, hash_password
 from registry_store import save_to_registry
 
 def run_app(state: dict, admin_password: str):
@@ -27,6 +29,8 @@ def run_app(state: dict, admin_password: str):
         ok = send_outlook_email(title, description, state["recipients"])
         if ok:
             messagebox.showinfo("נשלח", "הפנייה נשלחה בהצלחה.")
+            title_var.set("")
+            desc_text.delete("1.0", tk.END)
         else:
             messagebox.showerror("שגיאה", "שליחת המייל נכשלה. בדוק את Outlook/הרשאות.")
 
@@ -39,7 +43,7 @@ def run_app(state: dict, admin_password: str):
         pwd = simpledialog.askstring("סיסמה", "אנא הכנס סיסמה:", show="*")
         if pwd is None:
             return
-        if pwd != admin_password:
+        if hash_password(pwd) != state["admin_password_hash"]:
             messagebox.showerror("שגיאה", "סיסמה שגויה.")
             return
         open_admin_panel()
@@ -84,6 +88,19 @@ def run_app(state: dict, admin_password: str):
             state["subjects"] = new_subjects
             subject_combo["values"] = state["subjects"]
 
+            # save to shared drive first
+            ok = save_shared_config(
+                state["recipients"],
+                state["subjects"],
+                state["admin_password_hash"]
+            )
+            if not ok:
+                messagebox.showwarning(
+                    "אזהרה",
+                    "לא הצלחתי לשמור לדרייב המשותף.\nההגדרות נשמרו מקומית בלבד."
+                )
+
+            # always cache locally
             save_to_registry(state["recipients"], state["subjects"])
 
             messagebox.showinfo("נשמר", "הרשימות עודכנו בהצלחה.")
@@ -94,6 +111,46 @@ def run_app(state: dict, admin_password: str):
 
         ttk.Button(buttons_frame, text="שמור", command=save_and_close).pack(side="right", padx=(5, 0))
         ttk.Button(buttons_frame, text="סגור", command=editor.destroy).pack(side="right")
+        ttk.Button(buttons_frame, text="שנה סיסמה", command=change_admin_password).pack(side="right", padx=(5, 0))
+
+
+
+    def change_admin_password():
+        current = simpledialog.askstring("שינוי סיסמה", "הכנס סיסמה נוכחית:", show="*")
+        if current is None:
+            return
+        if hash_password(current) != state["admin_password_hash"]:
+            messagebox.showerror("שגיאה", "סיסמה נוכחית שגויה.")
+            return
+
+        new1 = simpledialog.askstring("שינוי סיסמה", "הכנס סיסמה חדשה:", show="*")
+        if new1 is None:
+            return
+        new1 = new1.strip()
+        if len(new1) < 4:
+            messagebox.showwarning("אזהרה", "סיסמה חייבת להיות לפחות 4 תווים.")
+            return
+
+        new2 = simpledialog.askstring("שינוי סיסמה", "אשר סיסמה חדשה:", show="*")
+        if new2 is None:
+            return
+        if new1 != new2:
+            messagebox.showerror("שגיאה", "הסיסמאות לא תואמות.")
+            return
+
+        # update in-memory hash
+        state["admin_password_hash"] = hash_password(new1)
+
+        # publish to shared config (source of truth)
+        ok = save_shared_config(state["recipients"], state["subjects"], state["admin_password_hash"])
+        if not ok:
+            messagebox.showwarning(
+                "אזהרה",
+                "לא הצלחתי לשמור לדרייב המשותף.\nהסיסמה עודכנה רק במחשב הזה עד שתהיה גישה לדרייב."
+            )
+            # optional: if you have registry caching, also save there here
+
+        messagebox.showinfo("נשמר", "הסיסמה עודכנה בהצלחה.")
 
     # -------- UI --------
     root = tk.Tk()
